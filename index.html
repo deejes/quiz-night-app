@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Night</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:
+      radial-gradient(900px 500px at 85% -10%,rgba(244,113,181,.18),transparent 60%),
+      radial-gradient(900px 500px at 10% 10%,rgba(45,212,191,.16),transparent 60%),
+      #0a0e1a;
+    color:#eef2ff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  }
+  .wrap{max-width:640px;width:100%;}
+  h1{text-align:center;font-size:2.6rem;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;}
+  h1 .t{color:#2dd4bf;} h1 .m{color:#f471b5;}
+  .sub{text-align:center;color:#8893b8;margin-bottom:30px;}
+  a.game{
+    display:block;text-decoration:none;color:inherit;background:#141a2e;border:1px solid #232a48;
+    border-radius:16px;padding:20px 22px;margin-bottom:14px;transition:transform .08s,border-color .15s;
+  }
+  a.game:hover{transform:translateY(-2px);border-color:#2dd4bf;}
+  a.game .nm{font-size:1.25rem;font-weight:700;}
+  a.game .nm .tag{font-size:.75rem;background:#222a4d;color:#2dd4bf;border-radius:999px;padding:3px 10px;margin-left:8px;vertical-align:middle;}
+  a.game .dsc{color:#8893b8;margin-top:6px;font-size:.92rem;line-height:1.4;}
+  .foot{text-align:center;color:#525a7d;font-size:.8rem;margin-top:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Quiz <span class="t">Night</span> <span class="m">🎉</span></h1>
+  <p class="sub">Pick a game and play. Best with friends in one room.</p>
+
+  <a class="game" href="quiz-pick.html">
+    <div class="nm">Pick &amp; Play <span class="tag">recommended</span></div>
+    <div class="dsc">Choose from 14 categories, build a board, and play buzzer rounds — players buzz in, get a 10-second timer, right answers score full, wrong answers lose half.</div>
+  </a>
+
+  <a class="game" href="feud-board.html">
+    <div class="nm">Trivia Board</div>
+    <div class="dsc">A fixed 5-category Jeopardy-style board ($10–$50). Host-judged: pick a tile, reveal the answer, award the points.</div>
+  </a>
+
+  <a class="game" href="trivia.html">
+    <div class="nm">Quick Trivia</div>
+    <div class="dsc">Classic multiple-choice, pass-the-device. Each player answers in turn; the game keeps score automatically.</div>
+  </a>
+
+  <p class="foot">5 players · no internet needed · just open in any browser</p>
+</div>
+</body>
+</html>
