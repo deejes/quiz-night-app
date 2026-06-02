@@ -4,7 +4,29 @@ A small collection of self-contained trivia games for playing with friends in on
 
 Built for 5 players, but easy to tweak.
 
-## Games
+## 🔔 Live Buzzer Mode (phones + auto-advance) — NEW
+
+No moderator needed. Questions appear on a big screen and advance on their own; each player buzzes in from their **own phone** by scanning a QR code.
+
+### How to run it (on game night)
+
+1. **Double-click `start.command`** (first run installs dependencies — needs internet once, ~20s).
+   - The big-screen page opens automatically at `http://localhost:3000/host`.
+2. Everyone **scans the QR code** on screen with their phone camera and types their name.
+   - *Everyone must be on the same Wi-Fi as the laptop.*
+3. Once 2+ players have joined, click **Start Game** once. From there it's hands-off.
+
+### How a round works
+- A multiple-choice question appears on the big screen on a countdown.
+- Phones show a big **BUZZ** button. First to buzz locks in and their phone reveals the 4 options.
+- **Correct = +100**, **wrong = −50** (and it reopens for the others), **time-out = pass, no penalty**.
+- The answer reveals, scores update, and the next question loads automatically.
+
+Manual start (instead of double-clicking): `npm install` then `npm start`.
+
+---
+
+## Single-device games
 
 Open **[`index.html`](index.html)** for a menu, or jump straight to one:
 

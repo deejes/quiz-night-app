@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Quiz Night — Buzzer</title>
+<style>
+  :root{--bg:#0a0e1a;--panel:#141a2e;--panel2:#1b2240;--teal:#2dd4bf;--magenta:#f471b5;--gold:#fbbf24;--text:#eef2ff;--muted:#8893b8;--green:#22c55e;--red:#ef4444;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg);color:var(--text);min-height:100%;display:flex;flex-direction:column;padding:18px;}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .top .me{font-weight:800;font-size:1.05rem;}
+  .top .sc{color:var(--gold);font-weight:800;font-size:1.05rem;}
+  .conn{font-size:.72rem;color:var(--muted);text-align:center;margin-bottom:6px;}
+  .hidden{display:none!important;}
+  .center{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px;}
+
+  h1{font-size:1.8rem;font-weight:800;} h1 .t{color:var(--teal);} h1 .m{color:var(--magenta);}
+  input{width:100%;padding:16px;border-radius:14px;border:1px solid #2c3358;background:#0c1124;color:#fff;font-size:1.2rem;text-align:center;}
+  .btn{border:none;border-radius:16px;font-weight:800;cursor:pointer;}
+  .join{width:100%;padding:18px;background:linear-gradient(90deg,var(--teal),#22b8a6);color:#04231f;font-size:1.2rem;}
+  .muted{color:var(--muted);font-size:1rem;line-height:1.5;}
+  .big{font-size:1.5rem;font-weight:700;}
+
+  /* buzzer */
+  .buzz{width:78vw;max-width:340px;height:78vw;max-height:340px;border-radius:50%;
+    background:radial-gradient(circle at 50% 35%,#fb7185,var(--magenta));color:#fff;font-size:2.4rem;font-weight:900;
+    box-shadow:0 16px 0 #9d174d, 0 22px 40px rgba(0,0,0,.5);transition:transform .06s,box-shadow .06s;}
+  .buzz:active{transform:translateY(10px);box-shadow:0 6px 0 #9d174d,0 10px 20px rgba(0,0,0,.5);}
+  .buzz:disabled{filter:grayscale(.7) brightness(.6);box-shadow:0 16px 0 #3a3a3a;}
+
+  .qtext{font-size:1.15rem;font-weight:600;line-height:1.35;color:var(--muted);}
+  .opts{display:grid;grid-template-columns:1fr;gap:12px;width:100%;}
+  .opt{padding:18px;border-radius:14px;background:var(--panel2);border:2px solid #2a325c;color:#fff;font-size:1.15rem;font-weight:700;display:flex;gap:12px;align-items:center;text-align:left;}
+  .opt .l{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:#0c1124;color:var(--teal);font-weight:900;flex:0 0 auto;}
+  .opt:active{border-color:var(--teal);}
+  .timer{font-size:1rem;color:var(--muted);}
+  .flash{font-size:1.4rem;font-weight:800;}
+  .flash.ok{color:var(--green);} .flash.no{color:var(--red);} .flash.lock{color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="conn" id="conn">connecting…</div>
+<div class="top hidden" id="top">
+  <span class="me" id="me"></span>
+  <span class="sc" id="sc"></span>
+</div>
+
+<!-- JOIN -->
+<div class="center" id="joinView">
+  <h1>Quiz <span class="t">Night</span> <span class="m">Live</span></h1>
+  <p class="muted">Enter your name to grab a buzzer.</p>
+  <input id="name" placeholder="Your name" autocomplete="off" maxlength="18">
+  <button class="btn join" onclick="join()">Join the game</button>
+</div>
+
+<!-- IN-GAME -->
+<div class="center hidden" id="gameView">
+  <div id="lobbyMsg" class="hidden">
+    <div class="big">You're in! ✅</div>
+    <p class="muted">Waiting for the host to start the game…</p>
+  </div>
+
+  <div id="buzzView" class="hidden">
+    <button class="buzz" id="buzzBtn" onclick="buzz()">BUZZ</button>
+    <div class="qtext" id="buzzQ"></div>
+    <div class="timer" id="buzzTimer"></div>
+  </div>
+
+  <div id="answerView" class="hidden">
+    <div class="big">Your answer — quick! ⏱</div>
+    <div class="opts" id="opts"></div>
+    <div class="timer" id="ansTimer"></div>
+  </div>
+
+  <div id="waitView" class="hidden">
+    <div class="flash" id="waitMsg"></div>
+    <div class="muted" id="waitSub"></div>
+  </div>
+</div>
+
+<script>
+let ws, myId=null, myName='';
+function connect(){
+  ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host);
+  ws.onopen=()=>{ document.getElementById('conn').textContent='● connected'; };
+  ws.onclose=()=>{ document.getElementById('conn').textContent='● disconnected — retrying'; setTimeout(connect,1000); };
+  ws.onmessage=(e)=>render(JSON.parse(e.data));
+}
+function sendMsg(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
+const $=id=>document.getElementById(id);
+const show=(id,on)=>$(id).classList.toggle('hidden',!on);
+
+function join(){
+  const n=$('name').value.trim(); if(!n) return;
+  myName=n; sendMsg({type:'join',role:'player',name:n});
+}
+function buzz(){ sendMsg({type:'buzz'}); }
+function answer(i){ sendMsg({type:'answer',choice:i}); }
+
+let lastState=null;
+function render(s){
+  if (s.type==='joined'){ myId=s.id; myName=s.name; show('joinView',false); show('gameView',true); show('top',true); $('me').textContent=myName; return; }
+  if (s.type!=='state') return;
+  lastState=s;
+  // my score
+  const me=s.players.find(p=>p.id===myId);
+  if (me) $('sc').textContent=me.score+' pts';
+
+  if (myId===null){ return; } // not joined yet
+
+  const locked=new Set(s.lockedOut||[]);
+  show('lobbyMsg', s.phase==='lobby');
+  show('buzzView', false); show('answerView', false); show('waitView', false);
+
+  if (s.phase==='lobby'){ return; }
+
+  if (s.phase==='gameover'){
+    show('waitView',true);
+    const place=s.players.findIndex(p=>p.id===myId)+1;
+    const f=$('waitMsg'); f.className='flash ok';
+    f.textContent = place===1?'🥇 You won!':`You finished #${place}`;
+    $('waitSub').textContent = (me?me.score:0)+' points';
+    return;
+  }
+
+  // question phases: open / answering / reveal
+  if (s.phase==='open'){
+    if (locked.has(myId)){
+      show('waitView',true); $('waitMsg').className='flash lock';
+      $('waitMsg').textContent='Locked out this round'; $('waitSub').textContent='Wait for the next question.';
+    } else {
+      show('buzzView',true);
+      $('buzzBtn').disabled=false; $('buzzBtn').textContent='BUZZ';
+      $('buzzQ').textContent=s.question||'';
+      $('buzzTimer').textContent=Math.ceil(s.timerMs/1000)+'s to buzz';
+    }
+    return;
+  }
+  if (s.phase==='answering'){
+    if (s.activeBuzzer===myId){
+      show('answerView',true);
+      const letters=['A','B','C','D']; const wrap=$('opts');
+      if (wrap.childElementCount!==(s.options||[]).length){
+        wrap.innerHTML='';
+        (s.options||[]).forEach((o,i)=>{ const b=document.createElement('button'); b.className='opt';
+          b.innerHTML=`<span class="l">${letters[i]}</span><span>${esc(o)}</span>`; b.onclick=()=>answer(i); wrap.appendChild(b); });
+      }
+      $('ansTimer').textContent=Math.ceil(s.timerMs/1000)+'s left';
+    } else {
+      show('waitView',true); $('waitMsg').className='flash';
+      $('waitMsg').textContent=`${esc(s.activeBuzzerName||'Someone')} buzzed first`; $('waitSub').textContent='Answering now…';
+    }
+    return;
+  }
+  if (s.phase==='reveal'){
+    show('waitView',true);
+    const f=$('waitMsg');
+    if (s.winnerId===myId){ f.className='flash ok'; f.textContent='✓ Correct! +'+s.value; $('waitSub').textContent='Nice.'; }
+    else if (s.winnerId){ const w=s.players.find(p=>p.id===s.winnerId); f.className='flash'; f.textContent=(w?esc(w.name):'Someone')+' got it'; $('waitSub').textContent='Next question coming…'; }
+    else { f.className='flash no'; f.textContent='Nobody got it'; $('waitSub').textContent=(s.options&&s.correct!=null)?('Answer: '+esc(s.options[s.correct])):''; }
+    return;
+  }
+}
+function esc(s){ return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+connect();
+</script>
+</body>
+</html>

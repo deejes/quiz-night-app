@@ -1,0 +1,14 @@
+{
+  "name": "quiz-night-live",
+  "version": "1.0.0",
+  "description": "Local buzzer quiz: auto-advancing questions on a screen, phones buzz in via QR code.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.0"
+  }
+}

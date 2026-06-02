@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Night — Big Screen</title>
+<style>
+  :root{--bg:#0a0e1a;--panel:#141a2e;--panel2:#1b2240;--teal:#2dd4bf;--magenta:#f471b5;--gold:#fbbf24;--text:#eef2ff;--muted:#8893b8;--green:#22c55e;--red:#ef4444;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(900px 500px at 85% -10%,rgba(244,113,181,.18),transparent 60%),radial-gradient(900px 500px at 10% 10%,rgba(45,212,191,.16),transparent 60%),var(--bg);
+    color:var(--text);min-height:100vh;padding:28px;}
+  .wrap{max-width:1100px;margin:0 auto;}
+  h1{text-align:center;font-size:2.2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:18px;}
+  h1 .t{color:var(--teal);} h1 .m{color:var(--magenta);}
+  .conn{position:fixed;top:10px;right:14px;font-size:.78rem;color:var(--muted);}
+  .hidden{display:none;}
+
+  /* lobby */
+  .lobby{display:grid;grid-template-columns:340px 1fr;gap:28px;align-items:start;}
+  .qrcard{background:#fff;border-radius:18px;padding:18px;text-align:center;}
+  .qrcard img{width:100%;max-width:300px;display:block;margin:0 auto;border-radius:8px;}
+  .qrcard .url{color:#0a0e1a;font-weight:700;margin-top:10px;font-size:.95rem;word-break:break-all;}
+  .qrcard .scan{color:#475569;font-size:.82rem;margin-top:4px;}
+  .lobbyright .hint{color:var(--muted);margin-bottom:14px;line-height:1.5;}
+  .roster{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px;min-height:48px;}
+  .pcard{background:var(--panel2);border:1px solid #2a325c;border-radius:12px;padding:10px 16px;font-weight:700;font-size:1.05rem;}
+  .pcard .dot{color:var(--green);}
+  .startbtn{padding:18px 28px;border:none;border-radius:14px;background:linear-gradient(90deg,var(--teal),#22b8a6);color:#04231f;font-size:1.25rem;font-weight:800;cursor:pointer;}
+  .startbtn:disabled{opacity:.4;cursor:not-allowed;}
+  .waiting{color:var(--muted);margin-top:10px;}
+
+  /* question */
+  .qmeta{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.95rem;margin-bottom:10px;}
+  .badge{background:var(--panel2);color:var(--gold);border:1px solid #2a325c;border-radius:999px;padding:5px 14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.8rem;}
+  .timerBar{height:14px;background:#0c1124;border:1px solid #2c3358;border-radius:999px;overflow:hidden;margin-bottom:22px;}
+  .timerFill{height:100%;width:100%;background:var(--teal);transition:width .25s linear,background .3s;}
+  .question{font-size:2.3rem;line-height:1.25;font-weight:700;text-align:center;margin:10px 0 30px;}
+  .options{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .opt{background:var(--panel2);border:2px solid #2a325c;border-radius:14px;padding:20px 22px;font-size:1.4rem;font-weight:600;display:flex;align-items:center;gap:14px;}
+  .opt .letter{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:#0c1124;color:var(--teal);font-weight:800;flex:0 0 auto;}
+  .opt.correct{border-color:var(--green);background:rgba(34,197,94,.16);} .opt.correct .letter{color:var(--green);}
+  .opt.dim{opacity:.45;}
+  .status{text-align:center;font-size:1.5rem;font-weight:700;margin:24px 0 6px;min-height:1.6em;}
+  .status.buzz{color:var(--magenta);} .status.win{color:var(--green);} .status.none{color:var(--muted);}
+
+  /* scoreboard */
+  .scores{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:26px;}
+  .schip{background:var(--panel);border:1px solid #2c3358;border-radius:12px;padding:9px 16px;font-size:1.05rem;display:flex;gap:10px;align-items:center;}
+  .schip.lead{border-color:var(--gold);}
+  .schip b{color:var(--gold);} .schip.lock{opacity:.5;}
+
+  /* gameover */
+  .podium{list-style:none;max-width:520px;margin:18px auto;}
+  .podium li{display:flex;justify-content:space-between;padding:16px 22px;border-radius:14px;margin-bottom:10px;background:var(--panel2);font-size:1.3rem;border:1px solid #2a325c;}
+  .podium li.first{background:linear-gradient(90deg,rgba(251,191,36,.22),var(--panel2));border-color:var(--gold);}
+  .again{display:block;margin:20px auto 0;padding:14px 24px;border:none;border-radius:12px;background:var(--teal);color:#04231f;font-weight:800;font-size:1.05rem;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="conn" id="conn">connecting…</div>
+<div class="wrap">
+  <h1>Quiz <span class="t">Night</span> <span class="m">Live</span></h1>
+
+  <!-- LOBBY -->
+  <div id="lobby" class="lobby hidden">
+    <div class="qrcard">
+      <img id="qr" alt="QR code to join">
+      <div class="url" id="playurl"></div>
+      <div class="scan">📷 Scan with your phone camera</div>
+    </div>
+    <div class="lobbyright">
+      <p class="hint">Everyone: point your phone camera at the QR code (make sure you're on the same Wi-Fi), open the link, and type your name. You'll appear here.</p>
+      <div class="roster" id="roster"></div>
+      <button class="startbtn" id="startbtn" onclick="send({type:'start'})" disabled>Start Game →</button>
+      <div class="waiting" id="waiting">Waiting for at least 2 players…</div>
+    </div>
+  </div>
+
+  <!-- QUESTION -->
+  <div id="play" class="hidden">
+    <div class="qmeta">
+      <span class="badge" id="cat"></span>
+      <span id="qnum"></span>
+    </div>
+    <div class="timerBar"><div class="timerFill" id="timer"></div></div>
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+    <div class="status" id="status"></div>
+    <div class="scores" id="scores"></div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="over" class="hidden">
+    <h1 style="font-size:1.6rem">🏆 Final Scores</h1>
+    <ul class="podium" id="podium"></ul>
+    <button class="again" onclick="send({type:'restart'})">Back to lobby ↺</button>
+  </div>
+</div>
+
+<script>
+let ws, lastPhase=null;
+function connect(){
+  ws = new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host);
+  ws.onopen = ()=>{ document.getElementById('conn').textContent='● live'; send({type:'join',role:'host'}); };
+  ws.onclose = ()=>{ document.getElementById('conn').textContent='● disconnected — retrying'; setTimeout(connect,1000); };
+  ws.onmessage = (e)=>render(JSON.parse(e.data));
+}
+function send(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
+const $ = id=>document.getElementById(id);
+const show = (id,on)=>$(id).classList.toggle('hidden',!on);
+
+function render(s){
+  if (s.type==='joined') return;
+  if (s.type!=='state') return;
+  show('lobby', s.phase==='lobby');
+  show('play', s.phase==='open'||s.phase==='answering'||s.phase==='reveal');
+  show('over', s.phase==='gameover');
+
+  if (s.phase==='lobby'){
+    if (s.qrDataUrl) $('qr').src=s.qrDataUrl;
+    $('playurl').textContent=s.playURL||'';
+    const r=$('roster'); r.innerHTML='';
+    s.players.forEach(p=>{ const d=document.createElement('div'); d.className='pcard'; d.innerHTML=`<span class="dot">●</span> ${esc(p.name)}`; r.appendChild(d); });
+    const enough=s.players.length>=2;
+    $('startbtn').disabled=!enough;
+    $('waiting').style.display=enough?'none':'block';
+    return;
+  }
+  if (s.phase==='gameover'){
+    const ul=$('podium'); ul.innerHTML='';
+    const medals=['🥇','🥈','🥉','',''];
+    s.players.forEach((p,i)=>{ const li=document.createElement('li'); if(i===0)li.className='first';
+      li.innerHTML=`<span>${medals[i]||'•'} ${esc(p.name)}</span><span style="color:var(--gold);font-weight:800">${p.score}</span>`; ul.appendChild(li); });
+    return;
+  }
+
+  // question phases
+  $('cat').textContent=s.category||'';
+  $('qnum').textContent=`Question ${s.qNumber} / ${s.qTotal}`;
+  const pct=s.timerTotal?Math.max(0,s.timerMs/s.timerTotal*100):0;
+  const fill=$('timer'); fill.style.width=pct+'%';
+  fill.style.background = (s.timerMs/s.timerTotal)<=0.3 ? 'var(--magenta)' : 'var(--teal)';
+  $('question').textContent=s.question||'';
+
+  const letters=['A','B','C','D'];
+  const opts=$('options'); opts.innerHTML='';
+  (s.options||[]).forEach((o,i)=>{
+    const d=document.createElement('div'); d.className='opt';
+    if (s.phase==='reveal' && i===s.correct) d.classList.add('correct');
+    else if (s.phase==='reveal') d.classList.add('dim');
+    d.innerHTML=`<span class="letter">${letters[i]}</span><span>${esc(o)}</span>`;
+    opts.appendChild(d);
+  });
+
+  const st=$('status'); st.className='status';
+  if (s.phase==='open'){ st.classList.add('buzz'); st.textContent='🔔 Buzz in on your phone!'; }
+  else if (s.phase==='answering'){ st.classList.add('buzz'); st.textContent=`${s.activeBuzzerName} buzzed in — answering…`; }
+  else if (s.phase==='reveal'){
+    if (s.winnerId){ const w=s.players.find(p=>p.id===s.winnerId); st.classList.add('win'); st.textContent=`✓ ${w?esc(w.name):'Someone'} got it!  +${s.value}`; }
+    else { st.classList.add('none'); st.textContent='⏱ Nobody got it.'; }
+  }
+
+  // scoreboard
+  const sc=$('scores'); sc.innerHTML='';
+  const locked=new Set(s.lockedOut||[]);
+  s.players.forEach((p,i)=>{ const c=document.createElement('div'); c.className='schip'+(i===0&&p.score>0?' lead':'')+(locked.has(p.id)?' lock':'');
+    c.innerHTML=`<span>${esc(p.name)}</span><b>${p.score}</b>`; sc.appendChild(c); });
+}
+function esc(s){ return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+connect();
+</script>
+</body>
+</html>
