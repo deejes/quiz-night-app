@@ -32,6 +32,7 @@ Open **[`index.html`](index.html)** for a menu, or jump straight to one:
 
 | Game | File | What it is |
 |------|------|------------|
+| **Head to Head** | [`head-to-head.html`](head-to-head.html) | **2 teams of 2.** Questions arrive as a random mix of topics and point values (no board). Miss your question and the other team can **steal** it for half points. Self-scoring — no moderator needed. |
 | **Pick & Play** | [`quiz-pick.html`](quiz-pick.html) | Choose from 14 categories, build a board, play **buzzer rounds** — players buzz in, the host taps them in order, each gets a 10-second timer. Right answer = full points; wrong answer = minus half; time-out = pass to the next buzzer. |
 | **Trivia Board** | [`feud-board.html`](feud-board.html) | A fixed 5-category Jeopardy-style board ($10–$50). Host-judged: pick a tile, reveal the answer, award the points. |
 | **Quick Trivia** | [`trivia.html`](trivia.html) | Classic multiple-choice, pass-the-device. Auto-scored, turn by turn. |
@@ -51,6 +52,10 @@ All questions live in a `CATEGORIES` (or `BANK`) array inside each file's `<scri
 `v` is the point value. For the **Logos & Brands** category, an optional `logo:"🍎"` shows an emoji hint above the clue.
 
 Add, edit, or delete entries freely — no other changes needed.
+
+### Difficulty
+
+The question banks are deliberately pitched **hard** — a level we calibrated by playing. The rule of thumb: don't ask the fact everyone knows, ask the layer behind it. Not *"which brand is the leaping cat?"* but *"Puma's founder's brother started which rival brand?"* Keep that standard when adding questions.
 
 ## Roadmap / ideas
 

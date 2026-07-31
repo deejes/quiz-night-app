@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Head to Head — Team Trivia</title>
+<style>
+  :root{
+    --bg:#0a0e1a;--panel:#141a2e;--panel2:#1b2240;--text:#eef2ff;--muted:#8893b8;
+    --t1:#2dd4bf;--t1d:#0f766e;--t2:#f471b5;--t2d:#9d174d;--gold:#fbbf24;--green:#22c55e;--red:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(800px 460px at 88% -10%,rgba(244,113,181,.16),transparent 60%),radial-gradient(800px 460px at 8% 8%,rgba(45,212,191,.15),transparent 60%),var(--bg);
+    color:var(--text);min-height:100vh;padding:22px;}
+  .wrap{max-width:820px;margin:0 auto;}
+  h1{text-align:center;font-size:2.1rem;font-weight:800;letter-spacing:-.02em;margin-bottom:4px;}
+  h1 .a{color:var(--t1);} h1 .b{color:var(--t2);}
+  .sub{text-align:center;color:var(--muted);margin-bottom:22px;font-size:.92rem;}
+  .hidden{display:none!important;}
+  .btn{border:none;border-radius:12px;font-weight:800;cursor:pointer;transition:filter .15s,transform .07s;}
+  .btn:active{transform:scale(.98);}
+
+  /* setup */
+  .panel{background:var(--panel);border:1px solid #232a48;border-radius:18px;padding:24px;}
+  .teamrow{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+  .teambox{border-radius:14px;padding:16px;border:2px solid;}
+  .teambox.one{border-color:var(--t1);background:linear-gradient(180deg,rgba(45,212,191,.1),transparent);}
+  .teambox.two{border-color:var(--t2);background:linear-gradient(180deg,rgba(244,113,181,.1),transparent);}
+  label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;}
+  input,select{width:100%;padding:11px 13px;border-radius:10px;border:1px solid #2c3358;background:#0c1124;color:#fff;font-size:1rem;}
+  .teambox input{margin-bottom:8px;}
+  .start{width:100%;margin-top:8px;padding:16px;background:linear-gradient(90deg,var(--t1),var(--t2));color:#0a0e1a;font-size:1.15rem;}
+
+  /* scoreboard */
+  .scoreboard{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:16px;}
+  .team{border-radius:14px;padding:12px 16px;border:2px solid transparent;transition:border-color .2s,background .2s;}
+  .team.one{background:rgba(45,212,191,.08);} .team.two{background:rgba(244,113,181,.08);}
+  .team.active.one{border-color:var(--t1);background:rgba(45,212,191,.2);}
+  .team.active.two{border-color:var(--t2);background:rgba(244,113,181,.2);}
+  .team .nm{font-weight:800;font-size:1rem;} .team.one .nm{color:var(--t1);} .team.two .nm{color:var(--t2);}
+  .team .pts{font-size:1.9rem;font-weight:900;line-height:1;}
+  .vs{color:var(--muted);font-weight:800;font-size:.9rem;}
+  .progress{text-align:center;color:var(--muted);font-size:.85rem;margin-bottom:6px;}
+
+  /* question */
+  .turnbanner{text-align:center;font-weight:800;font-size:1.15rem;margin:6px 0 12px;}
+  .turnbanner.one{color:var(--t1);} .turnbanner.two{color:var(--t2);}
+  .qcard{background:var(--panel);border:1px solid #232a48;border-radius:18px;padding:24px;}
+  .qtop{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.82rem;margin-bottom:12px;}
+  .badge{background:var(--panel2);color:var(--gold);border:1px solid #2a325c;border-radius:999px;padding:4px 12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .worth{color:var(--gold);font-weight:800;}
+  .timerBar{height:10px;background:#0c1124;border:1px solid #2c3358;border-radius:999px;overflow:hidden;margin-bottom:18px;}
+  .timerFill{height:100%;width:100%;transition:width .25s linear;}
+  .question{font-size:1.5rem;line-height:1.3;font-weight:700;margin-bottom:20px;}
+  .options{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:560px){.options{grid-template-columns:1fr;} .teamrow{grid-template-columns:1fr;}}
+  .opt{text-align:left;padding:16px 18px;border-radius:12px;background:var(--panel2);border:2px solid #2a325c;color:#fff;font-size:1.1rem;font-weight:600;display:flex;gap:12px;align-items:center;cursor:pointer;}
+  .opt .l{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:#0c1124;font-weight:800;flex:0 0 auto;}
+  .opt:hover:not(:disabled){border-color:#46508a;}
+  .opt:disabled{cursor:default;}
+  .opt.correct{border-color:var(--green);background:rgba(34,197,94,.18);} .opt.correct .l{color:var(--green);}
+  .opt.wrong{border-color:var(--red);background:rgba(239,68,68,.18);} .opt.wrong .l{color:var(--red);}
+  .opt.dim{opacity:.4;}
+  .active-1 .opt .l{color:var(--t1);} .active-2 .opt .l{color:var(--t2);}
+
+  .banner{text-align:center;font-size:1.3rem;font-weight:800;margin:18px 0 8px;min-height:1.5em;}
+  .banner.steal{color:var(--gold);} .banner.good{color:var(--green);} .banner.none{color:var(--muted);}
+  .next{display:block;margin:14px auto 0;padding:13px 26px;background:var(--gold);color:#2a1d00;font-size:1.05rem;}
+
+  /* result */
+  .result{text-align:center;}
+  .winner{font-size:2.2rem;font-weight:900;margin:14px 0;}
+  .finalscores{display:flex;gap:16px;justify-content:center;margin:18px 0;}
+  .fs{border-radius:14px;padding:18px 26px;border:2px solid;min-width:150px;}
+  .fs.one{border-color:var(--t1);} .fs.two{border-color:var(--t2);}
+  .fs .n{font-weight:800;margin-bottom:6px;} .fs.one .n{color:var(--t1);} .fs.two .n{color:var(--t2);}
+  .fs .p{font-size:2.4rem;font-weight:900;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="a">Head</span> to <span class="b">Head</span></h1>
+  <p class="sub">2 teams of 2 · random mix · steal the question if they miss it</p>
+
+  <!-- SETUP -->
+  <div id="setup" class="panel">
+    <div class="teamrow">
+      <div class="teambox one">
+        <label>Team 1 name</label><input id="t1name" value="The Sharks">
+        <label>Players (optional)</label><input id="t1players" placeholder="e.g. Dev & Sam">
+      </div>
+      <div class="teambox two">
+        <label>Team 2 name</label><input id="t2name" value="The Foxes">
+        <label>Players (optional)</label><input id="t2players" placeholder="e.g. Alex & Jo">
+      </div>
+    </div>
+    <label>How many questions?</label>
+    <select id="numQ">
+      <option value="8">8 (quick)</option>
+      <option value="12" selected>12</option>
+      <option value="16">16</option>
+      <option value="20">20 (long)</option>
+    </select>
+    <button class="btn start" onclick="startGame()">Start the duel →</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="game" class="hidden">
+    <div class="progress" id="progress"></div>
+    <div class="scoreboard">
+      <div class="team one" id="team0"><div class="nm" id="n0"></div><div class="pts" id="p0">0</div></div>
+      <div class="vs">VS</div>
+      <div class="team two" id="team1"><div class="nm" id="n1"></div><div class="pts" id="p1">0</div></div>
+    </div>
+    <div class="turnbanner" id="turnbanner"></div>
+    <div class="qcard">
+      <div class="qtop"><span class="badge" id="cat"></span><span class="worth" id="worth"></span></div>
+      <div class="timerBar"><div class="timerFill" id="timer"></div></div>
+      <div class="question" id="question"></div>
+      <div class="options" id="options"></div>
+      <div class="banner" id="banner"></div>
+      <button class="btn next hidden" id="nextBtn" onclick="nextQuestion()">Next →</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result" class="result hidden">
+    <div class="winner" id="winner"></div>
+    <div class="finalscores" id="finalscores"></div>
+    <button class="btn start" style="max-width:320px;margin:0 auto;" onclick="location.reload()">Rematch ↺</button>
+  </div>
+</div>
+
+<script>
+// Harder, mixed-topic bank. o = options, a = correct answer text (options get shuffled each show).
+const BANK = [
+  {t:"Geography", v:30, q:"Timbuktu sits on the edge of which desert, in modern-day Mali?", o:["Sahara","Kalahari","Namib","Gobi"], a:"Sahara"},
+  {t:"Science", v:30, q:"Roughly what percentage of the universe's ordinary matter is hydrogen?", o:["About 25%","About 50%","About 75%","About 95%"], a:"About 75%"},
+  {t:"History", v:40, q:"Marie Curie remains the only person to win Nobel Prizes in which two sciences?", o:["Physics & Chemistry","Chemistry & Medicine","Physics & Medicine","Chemistry & Economics"], a:"Physics & Chemistry"},
+  {t:"Art", v:30, q:"In which French town did Van Gogh cut off part of his ear in 1888?", o:["Arles","Giverny","Aix-en-Provence","Auvers"], a:"Arles"},
+  {t:"Language", v:30, q:"Which Roman poet coined the phrase 'carpe diem' in his Odes?", o:["Virgil","Horace","Ovid","Catullus"], a:"Horace"},
+  {t:"Geography", v:40, q:"The Tigris and Euphrates both empty into which body of water?", o:["The Persian Gulf","The Red Sea","The Caspian Sea","The Mediterranean"], a:"The Persian Gulf"},
+  {t:"Music", v:40, q:"Beethoven's Ninth Symphony sets which poet's 'Ode to Joy' to music?", o:["Goethe","Schiller","Heine","Rilke"], a:"Schiller"},
+  {t:"Science", v:30, q:"Lithium, the lightest metal, sits in which group of the periodic table?", o:["Alkali metals","Alkaline earth metals","Transition metals","Halogens"], a:"Alkali metals"},
+  {t:"History", v:40, q:"Which scholar is credited with finally deciphering Egyptian hieroglyphs in 1822?", o:["Jean-François Champollion","Thomas Young","Heinrich Schliemann","Flinders Petrie"], a:"Jean-François Champollion"},
+  {t:"Geography", v:40, q:"The Sargasso Sea — the only sea with no coastline — lies within which ocean?", o:["The Atlantic","The Pacific","The Indian","The Southern"], a:"The Atlantic"},
+  {t:"Science", v:30, q:"Blood type O negative is the universal donor because it lacks what?", o:["A, B and Rh antigens","White blood cells","Plasma proteins","Haemoglobin"], a:"A, B and Rh antigens"},
+  {t:"Literature", v:40, q:"'One Hundred Years of Solitude' is set in which fictional town?", o:["Macondo","Comala","Santa María","Yoknapatawpha"], a:"Macondo"},
+  {t:"Movies", v:40, q:"'Wings' won the first Best Picture Oscar — which war was it set in?", o:["World War I","The Spanish Civil War","The American Civil War","World War II"], a:"World War I"},
+  {t:"Science", v:30, q:"Which heart chamber pumps oxygenated blood out to the whole body?", o:["Left ventricle","Right ventricle","Left atrium","Right atrium"], a:"Left ventricle"},
+  {t:"Geography", v:40, q:"Kazakhstan's capital has been renamed several times — what is it called today?", o:["Astana","Almaty","Nur-Sultan","Karaganda"], a:"Astana"},
+  {t:"Art", v:40, q:"Which Pope commissioned Michelangelo to paint the Sistine Chapel ceiling?", o:["Julius II","Leo X","Alexander VI","Clement VII"], a:"Julius II"},
+  {t:"Music", v:40, q:"Which landmark 1959 Miles Davis album is the best-selling jazz record ever?", o:["Kind of Blue","Bitches Brew","Sketches of Spain","Birth of the Cool"], a:"Kind of Blue"},
+  {t:"Science", v:30, q:"Mycology is the study of fungi — what does 'herpetology' study?", o:["Reptiles and amphibians","Insects","Birds","Fish"], a:"Reptiles and amphibians"},
+  {t:"Sports", v:30, q:"In rugby union, how many points is a converted try worth in total?", o:["Seven","Five","Six","Eight"], a:"Seven"},
+  {t:"Geography", v:40, q:"Sudan has more pyramids than Egypt — they were built by which kingdom?", o:["Kush","Axum","Nubia-Punt","Saba"], a:"Kush"},
+  {t:"Language", v:40, q:"'Schadenfreude' literally combines the German words for what?", o:["Harm and joy","Shadow and fear","Shame and pride","Sorrow and laughter"], a:"Harm and joy"},
+  {t:"Science", v:40, q:"−40° is where Celsius and Fahrenheit meet. What is 0 Kelvin in Celsius?", o:["−273.15°C","−100°C","−459.67°C","0°C"], a:"−273.15°C"},
+  {t:"History", v:30, q:"Which Mongol leader, a grandson of Genghis Khan, founded China's Yuan dynasty?", o:["Kublai Khan","Ögedei Khan","Batu Khan","Tamerlane"], a:"Kublai Khan"},
+  {t:"Movies", v:40, q:"What is the name of the sentient computer in '2001: A Space Odyssey'?", o:["HAL 9000","SAL 9000","MU-TH-UR","Deep Thought"], a:"HAL 9000"},
+  {t:"Science", v:30, q:"Dry ice, used for smoke effects, is the solid form of which gas?", o:["Carbon dioxide","Nitrogen","Oxygen","Methane"], a:"Carbon dioxide"},
+  {t:"Geography", v:30, q:"Which British overseas territory sits on the Strait of Gibraltar's northern shore?", o:["Gibraltar","Malta","Cyprus","Ceuta"], a:"Gibraltar"},
+  {t:"Maths", v:30, q:"Two is the smallest prime — and the only prime that is also what?", o:["Even","A square","Negative","Irrational"], a:"Even"},
+  {t:"Literature", v:40, q:"In Dante's 'Inferno', how many circles of Hell are there?", o:["Nine","Seven","Five","Twelve"], a:"Nine"},
+  {t:"Science", v:40, q:"Which physicist discovered the electron in 1897?", o:["J.J. Thomson","Ernest Rutherford","Niels Bohr","James Chadwick"], a:"J.J. Thomson"},
+  {t:"Music", v:40, q:"Beethoven composed much of his later work while suffering from what?", o:["Deafness","Blindness","Paralysis","Amnesia"], a:"Deafness"},
+];
+
+let teams=[], turn=0, order=[], qi=0, total=0, current=null, timer=null, timeLeft=0;
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const $=id=>document.getElementById(id);
+const show=(id,on)=>$(id).classList.toggle('hidden',!on);
+
+function startGame(){
+  teams=[
+    {name:$('t1name').value.trim()||'Team 1', players:$('t1players').value.trim(), score:0},
+    {name:$('t2name').value.trim()||'Team 2', players:$('t2players').value.trim(), score:0},
+  ];
+  total=parseInt($('numQ').value,10);
+  order=shuffle([...BANK.keys()]).slice(0, Math.min(total, BANK.length));
+  total=order.length;
+  qi=0; turn=0;
+  show('setup',false); show('result',false); show('game',true);
+  $('n0').textContent=teams[0].name + (teams[0].players?` · ${teams[0].players}`:'');
+  $('n1').textContent=teams[1].name + (teams[1].players?` · ${teams[1].players}`:'');
+  renderScores();
+  beginQuestion();
+}
+
+function renderScores(){
+  $('p0').textContent=teams[0].score;
+  $('p1').textContent=teams[1].score;
+  $('team0').classList.toggle('active', current && current.stage!=='reveal' && activeTeam()===0);
+  $('team1').classList.toggle('active', current && current.stage!=='reveal' && activeTeam()===1);
+}
+function activeTeam(){ return current.stage==='steal' ? (1-current.primary) : current.primary; }
+
+function beginQuestion(){
+  const q=BANK[order[qi]];
+  current={ q, primary:turn, stage:'primary', options:shuffle(q.o), value:q.v };
+  $('progress').textContent=`Question ${qi+1} of ${total}`;
+  $('cat').textContent=q.t;
+  $('worth').textContent=`${q.v} pts`;
+  $('question').textContent=q.q;
+  $('banner').textContent=''; $('banner').className='banner';
+  show('nextBtn',false);
+  renderOptions();
+  renderTurn();
+  renderScores();
+  startTimer(25);
+}
+function renderTurn(){
+  const at=activeTeam();
+  const tb=$('turnbanner');
+  tb.className='turnbanner '+(at===0?'one':'two');
+  if (current.stage==='steal') tb.textContent=`🕵️ STEAL for ${current.stealValue} pts — ${teams[at].name}!`;
+  else tb.textContent=`${teams[at].name} — your question`;
+  const opts=$('options');
+  opts.classList.toggle('active-1', at===0);
+  opts.classList.toggle('active-2', at===1);
+}
+function renderOptions(){
+  const letters=['A','B','C','D'];
+  const wrap=$('options'); wrap.innerHTML='';
+  current.options.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.innerHTML=`<span class="l">${letters[i]}</span><span>${esc(o)}</span>`;
+    b.onclick=()=>pick(i,b);
+    wrap.appendChild(b);
+  });
+}
+
+function startTimer(secs){
+  clearInterval(timer); timeLeft=secs*1000;
+  const total=timeLeft; const fill=$('timer');
+  const at=activeTeam();
+  fill.style.background = at===0?'var(--t1)':'var(--t2)';
+  fill.style.width='100%';
+  timer=setInterval(()=>{
+    timeLeft-=250;
+    fill.style.width=Math.max(0,timeLeft/total*100)+'%';
+    if(timeLeft<=0){ clearInterval(timer); timeUp(); }
+  },250);
+}
+
+function pick(i, btn){
+  clearInterval(timer);
+  const correct = current.options[i]===current.q.a;
+  document.querySelectorAll('.opt').forEach((b,idx)=>{
+    b.disabled=true;
+    if(current.options[idx]===current.q.a) b.classList.add('correct');
+  });
+  if(!correct) btn.classList.add('wrong');
+  const at=activeTeam();
+
+  if(current.stage==='primary'){
+    if(correct){ teams[at].score+=current.value; endRound(`✓ ${teams[at].name} nail it!  +${current.value}`,'good'); }
+    else { goToSteal(); }
+  } else { // steal stage
+    if(correct){ teams[at].score+=current.stealValue; endRound(`🕵️ Steal! ${teams[at].name} grab ${current.stealValue} pts`,'good'); }
+    else { endRound('Nobody got it this time.','none'); }
+  }
+  renderScores();
+}
+
+function timeUp(){
+  document.querySelectorAll('.opt').forEach((b,idx)=>{ b.disabled=true; if(current.options[idx]===current.q.a) b.classList.add('correct'); });
+  if(current.stage==='primary'){ goToSteal(true); }
+  else { endRound("⏱ Time's up — nobody scored.",'none'); }
+}
+
+function goToSteal(timedOut){
+  current.stage='steal';
+  current.stealValue=Math.max(5, Math.round(current.value/2/5)*5);
+  // re-enable options for the stealing team
+  const letters=['A','B','C','D'];
+  const wrap=$('options'); wrap.innerHTML='';
+  current.options.forEach((o,i)=>{
+    const b=document.createElement('button'); b.className='opt';
+    b.innerHTML=`<span class="l">${letters[i]}</span><span>${esc(o)}</span>`;
+    b.onclick=()=>pick(i,b); wrap.appendChild(b);
+  });
+  $('banner').textContent = timedOut ? 'No answer — open to a steal!' : 'Wrong — open to a steal!';
+  $('banner').className='banner steal';
+  renderTurn(); renderScores();
+  startTimer(15);
+}
+
+function endRound(msg, cls){
+  clearInterval(timer);
+  document.querySelectorAll('.opt').forEach(b=>b.disabled=true);
+  current.stage='reveal';
+  $('banner').textContent=msg; $('banner').className='banner '+(cls||'');
+  show('nextBtn',true);
+  renderScores();
+}
+
+function nextQuestion(){
+  qi++; turn=1-turn;
+  if(qi>=total){ endGame(); return; }
+  beginQuestion();
+}
+
+function endGame(){
+  show('game',false); show('result',true);
+  const [a,b]=teams;
+  const w = a.score===b.score ? null : (a.score>b.score?a:b);
+  $('winner').textContent = w ? `🏆 ${w.name} win!` : "🤝 It's a tie!";
+  $('winner').style.color = w ? (w===a?'var(--t1)':'var(--t2)') : 'var(--gold)';
+  $('finalscores').innerHTML =
+    `<div class="fs one"><div class="n">${esc(a.name)}</div><div class="p">${a.score}</div></div>`+
+    `<div class="fs two"><div class="n">${esc(b.name)}</div><div class="p">${b.score}</div></div>`;
+}
+
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+</script>
+</body>
+</html>
