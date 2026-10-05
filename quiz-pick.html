@@ -46,6 +46,11 @@
   .cat-card.on{border-color:var(--teal);background:linear-gradient(180deg,rgba(45,212,191,.14),var(--panel2));}
   .cat-card.on::after{content:"✓";position:absolute;top:10px;right:12px;color:var(--teal);font-weight:900;font-size:1.1rem;}
 
+  .cat-card .fresh{margin-top:8px;font-size:.72rem;font-weight:700;color:var(--teal);}
+  .cat-card .fresh.low{color:var(--magenta);}
+  .ledger{margin-top:14px;font-size:.8rem;color:var(--muted);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;}
+  .linkbtn{background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:.8rem;padding:0;}
+  .linkbtn:hover{color:var(--text);}
   .row-btns{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
   .btn{border:none;border-radius:12px;font-weight:700;cursor:pointer;transition:filter .15s,transform .08s;}
   .btn:active{transform:scale(.98);}
@@ -119,6 +124,28 @@
   .done{max-width:520px;margin:50px auto;text-align:center;}
   .podium{list-style:none;margin:18px 0;}
   .podium li{display:flex;justify-content:space-between;padding:13px 18px;border-radius:12px;margin-bottom:9px;background:var(--panel2);font-size:1.1rem;border:1px solid #2a325c;}
+  /* fill the screen */
+  .panel{max-width:1200px;}
+  #game{max-width:none;height:calc(100vh - 40px);display:flex;flex-direction:column;}
+  #game .gtop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
+  #game h1{font-size:clamp(1.4rem,2.4vw,2.2rem);margin:0;}
+  #game .sub{margin:0;font-size:clamp(.85rem,1.2vw,1.1rem);}
+  .boardwrap{flex:1;min-height:0;overflow:auto;}
+  .board{height:100%;min-height:420px;grid-template-rows:auto repeat(5,1fr);min-width:0;}
+  .brow{min-width:max-content;}
+  @media(min-width:700px){.brow{min-width:0;}}
+  .cathead{font-size:clamp(.78rem,1.15vw,1.15rem);}
+  .tile{height:100%;font-size:clamp(1.4rem,4.2vh,3.4rem);}
+  .scores{margin-top:12px;}
+  .pchip b{font-size:clamp(1.8rem,4vh,3.2rem);}
+  .pchip .pname{font-size:clamp(.85rem,1.2vw,1.1rem);}
+  .modal{max-width:min(1200px,94vw);padding:clamp(24px,3vw,48px);}
+  .clue{font-size:clamp(1.6rem,3.4vw,3.2rem);}
+  .answer{font-size:clamp(1.35rem,2.4vw,2.2rem);}
+  .logohint{font-size:clamp(3.4rem,7vw,6rem);}
+  .buzz{font-size:clamp(.95rem,1.3vw,1.3rem);padding:clamp(11px,1.2vw,16px) clamp(16px,1.8vw,26px);}
+  .btn-reset{padding:10px 16px;background:#3a1f35;color:#ffd1e8;border:1px solid var(--magenta);font-size:.9rem;white-space:nowrap;}
+  .btn-reset:hover{filter:brightness(1.2);}
   .podium li.first{background:linear-gradient(90deg,rgba(251,191,36,.22),var(--panel2));border-color:var(--gold);}
 </style>
 </head>
@@ -146,25 +173,29 @@
       <button class="btn btn-ghost" onclick="randomPick()">🎲 Surprise me (pick 5)</button>
       <button class="btn btn-main" id="buildBtn" onclick="buildGame()" disabled>Build the board →</button>
     </div>
+    <div class="ledger">
+      <span id="ledgerInfo"></span>
+      <button class="linkbtn hidden" id="resetBtn" onclick="resetLedger()">Reset history</button>
+    </div>
   </div>
 </div>
 
 <!-- GAME -->
 <div id="game" class="hidden">
-  <h1>Pick <span class="t">&</span> <span class="m">Play</span></h1>
-  <p class="sub" id="progress"></p>
+  <div class="gtop">
+    <h1>Pick <span class="t">&</span> <span class="m">Play</span></h1>
+    <p class="sub" id="progress"></p>
+    <button class="btn btn-reset" onclick="resetGame()">↺ Reset game</button>
+  </div>
   <div class="boardwrap"><div class="board" id="board"></div></div>
   <div class="scores" id="scores"></div>
-  <div style="text-align:center;margin-top:16px;">
-    <button class="btn btn-ghost" onclick="location.reload()">↺ New game / pick again</button>
-  </div>
 </div>
 
 <!-- DONE -->
 <div id="done" class="done hidden">
   <h1>🏆 <span class="t">Final</span> <span class="m">Scores</span></h1>
   <ul class="podium" id="podium"></ul>
-  <button class="btn btn-main" style="max-width:300px;margin:0 auto;" onclick="location.reload()">Play again ↺</button>
+  <button class="btn btn-main" style="max-width:300px;margin:0 auto;" onclick="resetGame()">New game ↺</button>
 </div>
 
 <!-- MODAL -->
@@ -212,111 +243,230 @@
 </div>
 
 <script>
-// icon = card emoji (just decoration). clues: 5 entries, value = (i+1)*10.
+// icon = card emoji (just decoration). clues: any number per value (10–50); each board
+// draws one per value, preferring questions not yet played (see the ledger below).
 // logo field (optional) shows a big emoji hint above the clue.
 const CATEGORIES = [
   {name:"Logos & Brands", icon:"🏷️", desc:"Guess the brand from its logo", clues:[
-    {v:10,logo:"🔵🔗",q:"Audi's four rings represent the 1932 merger of how many car companies?",a:"Four"},
-    {v:20,logo:"🐆",q:"Puma was founded by Rudolf Dassler — whose brother started which rival brand?",a:"Adidas (Adolf 'Adi' Dassler)"},
-    {v:30,logo:"🐎",q:"Ferrari's prancing horse was adopted from the plane of which WWI flying ace?",a:"Francesco Baracca"},
-    {v:40,logo:"🍎",q:"Apple's logo is bitten so it isn't mistaken for what other fruit?",a:"A cherry (the bite gives it scale)"},
-    {v:50,logo:"🏔️",q:"Which studio's logo is a mountain circled by stars, the oldest surviving Hollywood studio?",a:"Paramount Pictures"},
+    {v:10,logo:"🍟🟡",q:"Which fast-food chain's logo is known as the 'Golden Arches'?",a:"McDonald's"},
+    {v:10,logo:"🧈👧",q:"Which dairy brand's ads star a polka-dotted little girl punning on the news?",a:"Amul"},
+    {v:20,logo:"📦➡️",q:"Which courier company's logo hides an arrow between its last two letters?",a:"FedEx"},
+    {v:20,logo:"✈️🤴",q:"The moustachioed Maharajah has been the mascot of which airline since 1946?",a:"Air India"},
+    {v:30,logo:"🦁",q:"Which French carmaker has used a lion as its badge for over a century?",a:"Peugeot"},
+    {v:30,logo:"📦😊",q:"Amazon's smiling arrow runs between which two letters, hinting it sells everything?",a:"A to Z"},
+    {v:40,logo:"💪",q:"Tyre maker MRF has a muscleman mascot. What does MRF stand for?",a:"Madras Rubber Factory"},
+    {v:40,logo:"📱🌲",q:"Which phone brand is named after a small Finnish town where it ran a paper mill?",a:"Nokia"},
+    {v:50,logo:"🔺💎",q:"Which Japanese group's name, shown in its red logo, means 'three diamonds'?",a:"Mitsubishi"},
+    {v:50,logo:"🎧🗼",q:"Which electronics giant was founded in 1946 as Tokyo Tsushin Kogyo?",a:"Sony"},
   ]},
   {name:"World Geography", icon:"🌍", desc:"Capitals, rivers, borders", clues:[
-    {v:10,q:"Which African kingdom is entirely surrounded by South Africa?",a:"Lesotho"},
-    {v:20,q:"Which African nation's capital is Ouagadougou?",a:"Burkina Faso"},
-    {v:30,q:"Which strait separates Alaska from Russia?",a:"The Bering Strait"},
-    {v:40,q:"Which is the largest country in the world with no permanent rivers?",a:"Saudi Arabia"},
-    {v:50,q:"Which lake holds around 20% of the world's unfrozen fresh water?",a:"Lake Baikal"},
+    {v:10,q:"Which is India's largest state by area?",a:"Rajasthan"},
+    {v:10,q:"Which country's map looks like a boot about to kick a ball (Sicily)?",a:"Italy"},
+    {v:20,q:"Which Indian city sits at the Sangam of the Ganga, Yamuna and mythical Saraswati?",a:"Prayagraj (Allahabad)"},
+    {v:20,q:"Myanmar was known by what name until 1989?",a:"Burma"},
+    {v:30,q:"Which strait separates Tamil Nadu from Sri Lanka?",a:"Palk Strait"},
+    {v:30,q:"Which African country was formerly known as Abyssinia?",a:"Ethiopia"},
+    {v:40,q:"Lake Titicaca, high in the Andes, is shared by Peru and which country?",a:"Bolivia"},
+    {v:40,q:"Which Indian union territory's name means 'a hundred thousand islands'?",a:"Lakshadweep"},
+    {v:50,q:"Which river is called the 'Sorrow of Bihar' for its devastating floods?",a:"Kosi"},
+    {v:50,q:"Mosi-oa-Tunya, 'the smoke that thunders', is the local name for which waterfall?",a:"Victoria Falls"},
   ]},
   {name:"Movies", icon:"🎬", desc:"Films, directors, classic lines", clues:[
-    {v:10,q:"Which director has won the Best Director Oscar the most times (four)?",a:"John Ford"},
-    {v:20,q:"In 'Jaws', what is the name of Quint's fishing boat?",a:"The Orca"},
-    {v:30,q:"Which was the first feature-length fully computer-animated film?",a:"Toy Story (1995)"},
-    {v:40,q:"'The Matrix' opens with a shot of what falling down the screen?",a:"Green code (digital rain)"},
-    {v:50,q:"Which film is the only sequel ever to win Best Picture alongside its predecessor?",a:"The Godfather Part II"},
+    {v:10,q:"Jack and Rose fall in love aboard a doomed ship in which 1997 film?",a:"Titanic"},
+    {v:10,q:"Raj and Simran fall in love on a Europe trip in which 1995 Shah Rukh Khan film?",a:"Dilwale Dulhania Le Jayenge (DDLJ)"},
+    {v:20,q:"In 'The Lion King', what is the name of Simba's villainous uncle?",a:"Scar"},
+    {v:20,q:"'All izz well' is the mantra in which 2009 Aamir Khan film?",a:"3 Idiots"},
+    {v:30,q:"Which Christopher Nolan film is about the father of the atomic bomb?",a:"Oppenheimer"},
+    {v:30,q:"Andy Dufresne tunnels his way out of prison in which 1994 film?",a:"The Shawshank Redemption"},
+    {v:40,q:"Who composed 'Naatu Naatu' from RRR, winner of the Oscar for Best Original Song?",a:"M.M. Keeravani"},
+    {v:40,q:"'Chaiyya Chaiyya', danced on top of a moving train, is from which Mani Ratnam film?",a:"Dil Se"},
+    {v:50,q:"Which 1957 film was India's first ever nominee for the Best Foreign Language Oscar?",a:"Mother India"},
+    {v:50,q:"Which 1913 Dadasaheb Phalke film is considered India's first full-length feature?",a:"Raja Harishchandra"},
   ]},
   {name:"Music", icon:"🎵", desc:"Artists, bands, instruments", clues:[
-    {v:10,q:"How many strings does a standard classical harp have, roughly?",a:"About 47"},
-    {v:20,q:"Which Beatles album features a zebra crossing on its cover?",a:"Abbey Road"},
-    {v:30,q:"What Italian term means gradually getting louder?",a:"Crescendo"},
-    {v:40,q:"Which composer wrote 'The Four Seasons'?",a:"Antonio Vivaldi"},
-    {v:50,q:"In a standard orchestra, which instrument traditionally tunes the rest?",a:"The oboe"},
+    {v:10,q:"Which Queen song opens 'Is this the real life? Is this just fantasy?'",a:"Bohemian Rhapsody"},
+    {v:10,q:"Which legendary playback singer was Asha Bhosle's elder sister?",a:"Lata Mangeshkar"},
+    {v:20,q:"Which rapper was born Marshall Mathers?",a:"Eminem"},
+    {v:20,q:"Which Beatle learned the sitar from Pandit Ravi Shankar?",a:"George Harrison"},
+    {v:30,q:"Which instrument did Ustad Zakir Hussain play?",a:"Tabla"},
+    {v:30,q:"Who wrote 'Vande Mataram', India's national song?",a:"Bankim Chandra Chattopadhyay"},
+    {v:40,q:"Which ABBA song won the Eurovision Song Contest for Sweden in 1974?",a:"Waterloo"},
+    {v:40,q:"Ustad Amjad Ali Khan is a maestro of which stringed instrument?",a:"Sarod"},
+    {v:50,q:"Which Beatles song had the working title 'Scrambled Eggs'?",a:"Yesterday"},
+    {v:50,q:"Which Hindustani vocalist was awarded the Bharat Ratna in 2009?",a:"Pandit Bhimsen Joshi"},
   ]},
   {name:"Science", icon:"🔬", desc:"Chemistry, biology, physics", clues:[
-    {v:10,q:"Which organ produces insulin in the human body?",a:"The pancreas"},
-    {v:20,q:"What is the only metal that is liquid at room temperature?",a:"Mercury"},
-    {v:30,q:"Which scientist first proposed that continents drift?",a:"Alfred Wegener"},
-    {v:40,q:"What is the term for a substance that speeds a reaction without being consumed?",a:"A catalyst"},
-    {v:50,q:"What is the name of the force holding an atom's nucleus together?",a:"The strong nuclear force"},
+    {v:10,q:"Which vitamin does our skin make when it is exposed to sunlight?",a:"Vitamin D"},
+    {v:10,q:"Nitrous oxide, used by dentists as a mild anaesthetic, is better known as what?",a:"Laughing gas"},
+    {v:20,q:"Who discovered penicillin in 1928 after mould contaminated one of his culture dishes?",a:"Alexander Fleming"},
+    {v:20,q:"Which unit of power is named after the Scot who improved the steam engine?",a:"The watt (James Watt)"},
+    {v:30,q:"Which Indian physicist is honoured in the name of the particles called 'bosons'?",a:"Satyendra Nath Bose"},
+    {v:30,q:"Which metal's Latin name, 'plumbum', gave English the word 'plumber'?",a:"Lead"},
+    {v:40,q:"Whose X-ray image 'Photo 51' was key to cracking DNA's double helix?",a:"Rosalind Franklin"},
+    {v:40,q:"Which kitchen appliance was born when radar engineer Percy Spencer's chocolate bar melted?",a:"The microwave oven"},
+    {v:50,q:"Element 101 is named after the father of the periodic table. What is it called?",a:"Mendelevium"},
+    {v:50,q:"Velcro was inspired by burrs stuck to an engineer's dog. Which country was he from?",a:"Switzerland"},
   ]},
   {name:"History", icon:"📜", desc:"Events, leaders, eras", clues:[
-    {v:10,q:"Which empire was ruled from the city of Constantinople?",a:"The Byzantine Empire"},
-    {v:20,q:"The Magna Carta was sealed by which English king?",a:"King John"},
-    {v:30,q:"Which treaty formally ended World War I in 1919?",a:"The Treaty of Versailles"},
-    {v:40,q:"Who was the first female Prime Minister of India?",a:"Indira Gandhi"},
-    {v:50,q:"The Battle of Hastings took place in which year?",a:"1066"},
+    {v:10,q:"Which Mughal emperor built the Taj Mahal in memory of his wife Mumtaz Mahal?",a:"Shah Jahan"},
+    {v:10,q:"Gandhi's 1930 Salt March ended at which coastal village in Gujarat?",a:"Dandi"},
+    {v:20,q:"Which Maratha king was crowned Chhatrapati at Raigad in 1674?",a:"Shivaji"},
+    {v:20,q:"In which year did the Berlin Wall fall?",a:"1989"},
+    {v:30,q:"The ruins at Hampi in Karnataka were the capital of which empire?",a:"Vijayanagara"},
+    {v:30,q:"Whose assassination in Sarajevo in 1914 set off the First World War?",a:"Archduke Franz Ferdinand"},
+    {v:40,q:"Chanakya, author of the Arthashastra, is also known by which other name?",a:"Kautilya"},
+    {v:40,q:"Which British officer ordered his troops to fire at Jallianwala Bagh in 1919?",a:"General Reginald Dyer"},
+    {v:50,q:"Which ancient Bihar university was sacked by Bakhtiyar Khilji's forces around 1200?",a:"Nalanda"},
+    {v:50,q:"After Elba, Napoleon was exiled to which remote Atlantic island, where he died?",a:"Saint Helena"},
   ]},
   {name:"Sports", icon:"⚽", desc:"Rules, records, teams", clues:[
-    {v:10,q:"How many players are on a water polo team in the pool?",a:"Seven"},
-    {v:20,q:"In golf, what is a score of three under par on a single hole called?",a:"An albatross (double eagle)"},
-    {v:30,q:"Which country has hosted the Summer Olympics the most times?",a:"The United States"},
-    {v:40,q:"In Formula 1, what colour flag signals the end of a race?",a:"The chequered flag"},
-    {v:50,q:"Which boxer famously called himself 'The Greatest'?",a:"Muhammad Ali"},
+    {v:10,q:"Neeraj Chopra won India's Tokyo Olympics gold in which athletics event?",a:"Javelin throw"},
+    {v:10,q:"Which is the only chess piece that can jump over other pieces?",a:"The knight"},
+    {v:20,q:"Sprinter Milkha Singh was famously known by what nickname?",a:"The Flying Sikh"},
+    {v:20,q:"Which Indian badminton star won Olympic medals at both Rio 2016 and Tokyo 2020?",a:"P.V. Sindhu"},
+    {v:30,q:"India's National Sports Day, 29 August, marks the birthday of which hockey legend?",a:"Dhyan Chand"},
+    {v:30,q:"Which city hosted the first modern Olympic Games, in 1896?",a:"Athens"},
+    {v:40,q:"British officers picked up modern polo from players in which northeastern Indian state?",a:"Manipur"},
+    {v:40,q:"Which Indian became the youngest ever world chess champion, in 2024?",a:"D. Gukesh"},
+    {v:50,q:"Until 1970, the football World Cup trophy was named after which FIFA president?",a:"Jules Rimet"},
+    {v:50,q:"Which city hosted the very first Asian Games, in 1951?",a:"New Delhi"},
   ]},
   {name:"Food & Drink", icon:"🍕", desc:"Dishes, ingredients, origins", clues:[
-    {v:10,q:"Which part of the crocus flower produces saffron?",a:"The stigma (threads)"},
-    {v:20,q:"The word 'pesto' comes from an Italian verb meaning what?",a:"To crush or pound ('pestare')"},
-    {v:30,q:"Which country consumes the most coffee per person in the world?",a:"Finland"},
-    {v:40,q:"Balsamic vinegar traditionally comes from which Italian city?",a:"Modena"},
-    {v:50,q:"Which spirit forms the base of a classic mojito?",a:"White rum"},
+    {v:10,q:"The Margherita pizza is traditionally credited to which Italian city?",a:"Naples"},
+    {v:10,q:"Pad thai is the national dish of which country?",a:"Thailand"},
+    {v:20,q:"Sushi rice is traditionally seasoned with sugar, salt and what?",a:"Rice vinegar"},
+    {v:20,q:"Tequila is distilled from which plant?",a:"Blue agave"},
+    {v:30,q:"Which Kerala spice did traders call 'black gold'?",a:"Black pepper"},
+    {v:30,q:"Which slow-cooked dish of meat and wheat is a Hyderabadi Ramzan favourite?",a:"Haleem"},
+    {v:40,q:"Tonic water's quinine was drunk by the British in India to ward off which disease?",a:"Malaria"},
+    {v:40,q:"By law, American bourbon must be made mostly from which grain?",a:"Corn (maize)"},
+    {v:50,q:"Gin's name comes from the Dutch word for which berry that flavours it?",a:"Juniper"},
+    {v:50,q:"Which Mexican spirit is famously sold with a 'worm' (a moth larva) in the bottle?",a:"Mezcal"},
   ]},
   {name:"Animals & Nature", icon:"🦁", desc:"Wildlife and the natural world", clues:[
-    {v:10,q:"Which mammal has the longest gestation period?",a:"The elephant (about 22 months)"},
-    {v:20,q:"What is the only venomous snake native to Britain?",a:"The adder"},
-    {v:30,q:"Which bird makes the longest annual migration on Earth?",a:"The Arctic tern"},
-    {v:40,q:"How many stomachs does a cow have?",a:"One, with four compartments"},
-    {v:50,q:"What is the world's most venomous marine creature?",a:"The box jellyfish"},
+    {v:10,q:"A baby kangaroo is called what?",a:"A joey"},
+    {v:10,q:"India's national bird is the peacock. What is its national animal?",a:"The tiger (Bengal tiger)"},
+    {v:20,q:"Which living bird lays the largest egg?",a:"The ostrich"},
+    {v:20,q:"Assam's Kaziranga National Park is famous for which armoured animal?",a:"The one-horned rhinoceros"},
+    {v:30,q:"Which is the world's longest venomous snake, and the only one that builds a nest?",a:"The king cobra"},
+    {v:30,q:"What is a group of lions called?",a:"A pride"},
+    {v:40,q:"India's national aquatic animal is a nearly blind river mammal. What is it?",a:"The Ganges river dolphin"},
+    {v:40,q:"Kerala's state fruit is the world's largest tree-borne fruit. Which fruit?",a:"Jackfruit"},
+    {v:50,q:"Which heavy, critically endangered bird is Rajasthan's state bird, imperilled by power lines?",a:"The Great Indian Bustard (Godawan)"},
+    {v:50,q:"The axolotl, famed for regrowing limbs, is native to the lakes of which city?",a:"Mexico City (Xochimilco)"},
   ]},
   {name:"Internet & Pop Culture", icon:"💻", desc:"Apps, memes, modern culture", clues:[
-    {v:10,q:"What was the first message ever sent over the internet's predecessor, ARPANET?",a:"'LO' (an attempted 'LOGIN' that crashed)"},
-    {v:20,q:"Which website's name comes from a misspelling of the number 10^100?",a:"Google (googol)"},
-    {v:30,q:"What was the first video uploaded to YouTube called?",a:"'Me at the zoo'"},
-    {v:40,q:"Which social network was originally called 'Twttr'?",a:"Twitter"},
-    {v:50,q:"What does the 'S' in HTTPS add to a web connection?",a:"Security (encryption via TLS/SSL)"},
+    {v:10,q:"Which K-pop band's fans call themselves the ARMY?",a:"BTS"},
+    {v:10,q:"Which Swedish YouTuber fought a famous subscriber race against T-Series?",a:"PewDiePie"},
+    {v:20,q:"Which hugely popular short-video app did India ban in June 2020?",a:"TikTok"},
+    {v:20,q:"Which 2021 Korean Netflix hit pits debtors against each other in deadly children's games?",a:"Squid Game"},
+    {v:30,q:"Getting 'Rickrolled' means being tricked into watching which song's video?",a:"Never Gonna Give You Up"},
+    {v:30,q:"Kaleen Bhaiya is the feared don in which Indian web series?",a:"Mirzapur"},
+    {v:40,q:"Which actor sang the 2011 viral 'Tanglish' hit 'Why This Kolaveri Di'?",a:"Dhanush"},
+    {v:40,q:"The 2014 Ice Bucket Challenge raised money for research into which disease?",a:"ALS (motor neurone disease)"},
+    {v:50,q:"Calling junk email 'spam' comes from a sketch by which comedy troupe?",a:"Monty Python"},
+    {v:50,q:"The word 'blog' is a shortening of which longer word?",a:"Weblog"},
   ]},
   {name:"Space & Astronomy", icon:"🚀", desc:"Planets, stars, exploration", clues:[
-    {v:10,q:"Which planet rotates on its side, tipped nearly 98 degrees?",a:"Uranus"},
-    {v:20,q:"What is the name of the boundary marking the edge of the Sun's influence?",a:"The heliopause"},
-    {v:30,q:"Which two spacecraft, launched in 1977, have left the solar system?",a:"Voyager 1 and Voyager 2"},
-    {v:40,q:"What is the brightest star in Earth's night sky?",a:"Sirius"},
-    {v:50,q:"What is the term for a star that has collapsed into pure neutrons?",a:"A neutron star"},
+    {v:10,q:"Which planet is known as the Red Planet?",a:"Mars"},
+    {v:10,q:"Which Indian-born astronaut died in the Space Shuttle Columbia disaster in 2003?",a:"Kalpana Chawla"},
+    {v:20,q:"ISRO's Mars Orbiter Mission of 2013-14 is popularly known by what name?",a:"Mangalyaan"},
+    {v:20,q:"Who became the first human in space, in 1961?",a:"Yuri Gagarin"},
+    {v:30,q:"Asked by Indira Gandhi how India looked from space, Rakesh Sharma replied with which line?",a:"Saare Jahan Se Achha"},
+    {v:30,q:"What was the name of the Soviet dog that became the first animal to orbit Earth, in 1957?",a:"Laika"},
+    {v:40,q:"In Indian tradition, the Big Dipper is named after which group of seven sages?",a:"Saptarishi"},
+    {v:40,q:"Betelgeuse and Rigel are the two brightest stars of which constellation?",a:"Orion"},
+    {v:50,q:"The 'L' in ISRO's Aditya-L1 refers to a point named after which mathematician?",a:"Joseph-Louis Lagrange"},
+    {v:50,q:"Pluto was named by an 11-year-old girl in 1930. In which English city did she live?",a:"Oxford"},
   ]},
   {name:"Books & Literature", icon:"📚", desc:"Authors and famous works", clues:[
-    {v:10,q:"Which novel's opening line is 'It was the best of times, it was the worst of times'?",a:"A Tale of Two Cities"},
-    {v:20,q:"Which author created the fictional county of Yoknapatawpha?",a:"William Faulkner"},
-    {v:30,q:"Who wrote 'Things Fall Apart', a landmark of African literature?",a:"Chinua Achebe"},
-    {v:40,q:"Which Shakespeare play is the shortest?",a:"The Comedy of Errors"},
-    {v:50,q:"Which Russian novel opens 'All happy families are alike'?",a:"Anna Karenina"},
+    {v:10,q:"Which Paulo Coelho novel follows the shepherd boy Santiago on a quest for treasure?",a:"The Alchemist"},
+    {v:10,q:"Which Hogwarts house has a lion as its emblem?",a:"Gryffindor"},
+    {v:20,q:"Who wrote 'Midnight's Children', whose hero is born at the stroke of India's independence?",a:"Salman Rushdie"},
+    {v:20,q:"In Tolkien's world, which ring-obsessed creature was once a hobbit-like being called Sméagol?",a:"Gollum"},
+    {v:30,q:"Satyajit Ray's detective Prodosh Chandra Mitter is better known by what name?",a:"Feluda"},
+    {v:30,q:"Which of the Brontë sisters wrote 'Wuthering Heights'?",a:"Emily Brontë"},
+    {v:40,q:"Which Indian author won the 2008 Booker Prize for 'The White Tiger'?",a:"Aravind Adiga"},
+    {v:40,q:"Lewis Carroll was the pen name of which Oxford maths lecturer?",a:"Charles Dodgson"},
+    {v:50,q:"Which Bengali novelist wrote 'Devdas'?",a:"Sarat Chandra Chattopadhyay"},
+    {v:50,q:"Which children's author was an RAF fighter pilot and later a British spy in Washington?",a:"Roald Dahl"},
   ]},
   {name:"Technology", icon:"🔌", desc:"Gadgets, companies, acronyms", clues:[
-    {v:10,q:"Who is widely regarded as the world's first computer programmer?",a:"Ada Lovelace"},
-    {v:20,q:"What does the 'Bluetooth' technology take its name from?",a:"A 10th-century Danish king, Harald Bluetooth"},
-    {v:30,q:"What was the name of the first widely used web browser, released in 1993?",a:"Mosaic"},
-    {v:40,q:"In computing, how many bytes are in a kilobyte (binary definition)?",a:"1,024"},
-    {v:50,q:"What does 'RAID' stand for in data storage?",a:"Redundant Array of Independent Disks"},
+    {v:10,q:"Which company owns both WhatsApp and Instagram?",a:"Meta (Facebook)"},
+    {v:10,q:"Which company makes the Galaxy range of smartphones?",a:"Samsung"},
+    {v:20,q:"Who proposed the World Wide Web in 1989 while working at CERN?",a:"Tim Berners-Lee"},
+    {v:20,q:"In India's UPI payments system, what does the 'U' stand for?",a:"Unified"},
+    {v:30,q:"Which Indian IT giant did N.R. Narayana Murthy co-found in 1981?",a:"Infosys"},
+    {v:30,q:"Which Chinese company now makes ThinkPad laptops, bought from IBM?",a:"Lenovo"},
+    {v:40,q:"Which Indian-born entrepreneur co-founded Hotmail, sold to Microsoft in 1997?",a:"Sabeer Bhatia"},
+    {v:40,q:"Whose 1950 paper proposed the 'imitation game' to test if machines can think?",a:"Alan Turing"},
+    {v:50,q:"Indian engineer Vinod Dham is called the 'father' of which famous Intel chip?",a:"Pentium"},
+    {v:50,q:"The first item ever sold on eBay, in 1995, was a broken what?",a:"Laser pointer"},
   ]},
   {name:"Myths & Legends", icon:"⚡", desc:"Gods, heroes, monsters", clues:[
-    {v:10,q:"Which Titan was condemned to hold up the sky for eternity?",a:"Atlas"},
-    {v:20,q:"How many labours was Hercules required to complete?",a:"Twelve"},
-    {v:30,q:"In Norse myth, what is the name of the final battle that ends the world?",a:"Ragnarök"},
-    {v:40,q:"Which Greek figure was cursed to always be right but never believed?",a:"Cassandra"},
-    {v:50,q:"In Egyptian belief, the heart was weighed against what at judgement?",a:"A feather (of Ma'at, truth)"},
+    {v:10,q:"Which monkey god leapt across the sea to Lanka in search of Sita?",a:"Hanuman"},
+    {v:10,q:"Which Greek hero was invulnerable everywhere except his heel?",a:"Achilles"},
+    {v:20,q:"Which hero cut off Medusa's head?",a:"Perseus"},
+    {v:20,q:"Which god is said to have written down the Mahabharata as Vyasa dictated it?",a:"Ganesha"},
+    {v:30,q:"What is the name of the three-headed dog guarding the Greek underworld?",a:"Cerberus"},
+    {v:30,q:"In the Mahabharata, Karna is the secret son of Kunti and which god?",a:"Surya (the Sun god)"},
+    {v:40,q:"The English word 'panic' comes from which Greek god?",a:"Pan"},
+    {v:40,q:"In the Ramayana, which demon turned into a golden deer to lure Rama away?",a:"Maricha"},
+    {v:50,q:"As punishment, an eagle ate which of Prometheus's organs every day?",a:"His liver"},
+    {v:50,q:"Arjuna spent a year disguised as the dance teacher Brihannala in which king's court?",a:"King Virata (Matsya)"},
   ]},
 ];
 
 const selected = new Set();
 let players=[], scores=[], chosen=[], remaining=0, current=null;
+let played=new Set(), openTile=null;   // "ci-ri" keys of finished tiles; tile open in the modal
+const VALUES=[10,20,30,40,50];
+
+// ---- saved game: survives reloads and accidental back-navigation until Reset ----
+const GAME_KEY='qp_game_v1';
+function saveGame(){
+  try{ localStorage.setItem(GAME_KEY, JSON.stringify({players,scores,chosen,played:[...played],openTile})); }catch{}
+}
+function loadGame(){
+  try{ return JSON.parse(localStorage.getItem(GAME_KEY)); }catch{ return null; }
+}
+function resetGame(){
+  if(!confirm('Reset the game? Scores and the current board will be cleared.')) return;
+  try{ localStorage.removeItem(GAME_KEY); }catch{}
+  location.reload();
+}
+function restoreGame(g){
+  players=g.players; scores=g.scores; chosen=g.chosen; played=new Set(g.played);
+  remaining=chosen.length*5-played.size;
+  showGame();
+  if(remaining<=0){ showDone(); return; }
+  if(g.openTile){ const [ci,ri]=g.openTile; openClue(ci,ri,tileAt(ci,ri)); }
+}
+function tileAt(ci,ri){ return document.querySelector(`.tile[data-k="${ci}-${ri}"]`); }
+
+
+// ---- used-questions ledger: remembers what's been played across game nights ----
+// Stored in this browser only, keyed by question text -> time last played.
+const LEDGER_KEY='qp_used_v1';
+let ledger={};
+try{ ledger=JSON.parse(localStorage.getItem(LEDGER_KEY))||{}; }catch{ ledger={}; }
+function saveLedger(){ try{ localStorage.setItem(LEDGER_KEY,JSON.stringify(ledger)); }catch{} }
+function markUsed(clue){ ledger[clue.q]=Date.now(); saveLedger(); }
+function isUsed(clue){ return clue.q in ledger; }
+// true when some value has no unplayed question left, so the next board would repeat one
+function hasRepeats(c){ return VALUES.some(v=>!c.clues.some(k=>k.v===v&&!isUsed(k))); }
+function freshCount(c){ return c.clues.filter(k=>!isUsed(k)).length; }
+function resetLedger(){
+  if(!confirm('Forget every question played so far? All questions become fresh again.')) return;
+  ledger={}; saveLedger(); renderCats();
+}
+// One clue per value: a random fresh one if any, otherwise the one played longest ago.
+function drawClue(c,v){
+  const pool=c.clues.filter(k=>k.v===v);
+  const fresh=pool.filter(k=>!isUsed(k));
+  if(fresh.length) return fresh[Math.floor(Math.random()*fresh.length)];
+  return pool.reduce((a,b)=>ledger[a.q]<=ledger[b.q]?a:b);
+}
 
 // ---- setup: render category cards ----
 function renderCats(){
@@ -325,11 +475,18 @@ function renderCats(){
   CATEGORIES.forEach((c,i)=>{
     const card=document.createElement('div');
     card.className='cat-card'+(selected.has(i)?' on':'');
-    card.innerHTML=`<div class="emoji">${c.icon}</div><div class="nm">${c.name}</div><div class="dsc">${c.desc}</div>`;
+    const f=freshCount(c), t=c.clues.length;
+    card.innerHTML=`<div class="emoji">${c.icon}</div><div class="nm">${c.name}</div><div class="dsc">${c.desc}</div>`
+      +`<div class="fresh${hasRepeats(c)?' low':''}">${f} of ${t} fresh</div>`;
     card.onclick=()=>toggleCat(i);
     wrap.appendChild(card);
   });
   updateCount();
+  const used=Object.keys(ledger).length;
+  document.getElementById('ledgerInfo').textContent = used
+    ? `${used} question${used===1?'':'s'} already played on this device — boards draw fresh ones first.`
+    : 'No questions played yet on this device.';
+  document.getElementById('resetBtn').classList.toggle('hidden', !used);
 }
 function toggleCat(i){
   if(selected.has(i)) selected.delete(i); else selected.add(i);
@@ -352,8 +509,17 @@ function buildGame(){
   players=[];
   for(let i=0;i<5;i++) players.push(document.getElementById('p'+i).value.trim()||('Player '+(i+1)));
   scores=players.map(()=>0);
-  chosen=[...selected].sort((a,b)=>a-b).map(i=>CATEGORIES[i]);
+  chosen=[...selected].sort((a,b)=>a-b).map(i=>{
+    const c=CATEGORIES[i];
+    return {name:c.name, icon:c.icon, clues:VALUES.map(v=>drawClue(c,v))};
+  });
+  played=new Set(); openTile=null;
   remaining=chosen.length*5;
+  try{ localStorage.setItem('qp_names', JSON.stringify(players)); }catch{}
+  showGame();
+  saveGame();
+}
+function showGame(){
   document.getElementById('setup').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
   buildBoard();renderScores();updateProgress();
@@ -377,7 +543,8 @@ function buildBoard(){
     chosen.forEach((c,ci)=>{
       const clue=c.clues[r];
       const btn=document.createElement('button');
-      btn.className='tile';btn.textContent='$'+clue.v;
+      btn.className='tile';btn.textContent='$'+clue.v;btn.dataset.k=`${ci}-${r}`;
+      btn.disabled=played.has(btn.dataset.k);
       btn.onclick=()=>openClue(ci,r,btn);
       row.appendChild(btn);
     });
@@ -388,7 +555,8 @@ function buildBoard(){
 // ---- buzzer round state machine ----
 function openClue(ci,ri,btn){
   const c=chosen[ci], clue=c.clues[ri];
-  current={btn,value:clue.v,clue,queue:[],idx:0,timer:null,timeLeft:10,done:false};
+  current={btn,key:`${ci}-${ri}`,value:clue.v,clue,queue:[],idx:0,timer:null,timeLeft:10,done:false};
+  openTile=[ci,ri]; saveGame();
   document.getElementById('mtop').textContent=`${c.name} — $${clue.v}`;
   const lh=document.getElementById('logohint');
   if(clue.logo){lh.textContent=clue.logo;lh.classList.remove('hidden');}else{lh.classList.add('hidden');}
@@ -505,7 +673,8 @@ function finalize(msg){
   document.getElementById('resolveStep').classList.remove('hidden');
   document.getElementById('answerText').textContent='Answer: '+current.clue.a;
   document.getElementById('outcome').textContent=msg;
-  if(!current.done){current.btn.disabled=true;remaining--;current.done=true;updateProgress();}
+  if(!current.done){current.btn.disabled=true;remaining--;current.done=true;markUsed(current.clue);
+    played.add(current.key);openTile=null;saveGame();updateProgress();}
 }
 function closeClue(){
   document.getElementById('overlay').classList.remove('show');
@@ -527,6 +696,7 @@ function renderScores(){
     [-10,-5,5,10].forEach((d,n)=>{ btns[n].onclick=()=>adjustScore(i,d); });
     s.appendChild(c);
   });
+  saveGame();
 }
 
 function adjustScore(playerIdx, delta){
@@ -548,7 +718,10 @@ function showDone(){
   });
 }
 
+try{ const n=JSON.parse(localStorage.getItem('qp_names')); if(n) n.forEach((v,i)=>{ const el=document.getElementById('p'+i); if(el&&v) el.value=v; }); }catch{}
 renderCats();
+const saved=loadGame();
+if(saved && saved.chosen && saved.chosen.length) restoreGame(saved);
 </script>
 </body>
 </html>
